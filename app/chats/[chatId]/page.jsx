@@ -9,7 +9,7 @@ import Header from '@/components/layout/header';
 import MessageList from '@/components/chat/message-list';
 import MessageInput from '@/components/chat/message-input';;
 import { db } from '@/lib/firebase/config';
-import { decryptMessage, decryptWithAES, encryptMessage } from '@/lib/crypto/signature';
+import { decryptMessage, decryptWithAES, encryptMessage, verifySignature } from '@/lib/crypto/signature';
 import { query, where, getDocs, collection,doc, getDoc  } from 'firebase/firestore';
 export default function Chat() {
   const { chatId } = useParams();
@@ -62,13 +62,15 @@ export default function Chat() {
             const encryptedAES = (message.recipient === user.email) ? message.recipientAES : message.senderAES;
             
             // Step 2: Decrypt the AES key using the user's private key
-            const aesKey = decryptMessage(encryptedAES, localStorage.getItem('privateKey'));
+            // const aesKey = decryptMessage(encryptedAES, localStorage.getItem('privateKey'));
             
             // Step 3: Decrypt the message using AES
-            const decryptedText = decryptWithAES(message.text, aesKey);
+            const decryptedText = decryptWithAES(message.text, encryptedAES, localStorage.getItem('privateKey'));
             
             // Step 4: Verify the sender's signature
-            const isValidSignature = verifySignature(decryptedText, message.signature, senderPublicKey);
+            let isValidSignature = true;
+            if(message.recipient === user.email)
+                isValidSignature = verifySignature(decryptedText, message.signature, recipientPublicKey);
             if (!isValidSignature) {
                 console.error("Signature verification failed! Message may be tampered with.");
                 return { ...message, text: "[Invalid Signature]", decrypted: false };
