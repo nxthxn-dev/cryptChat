@@ -30,17 +30,51 @@ export default function Chat() {
       router.push('/auth/sign-in');
       return;
     }
-
-    const fetchChatData = async () => {
+    let rPublicKey = ""
+    let sPublicKey = ""
+    const fetchData = async () => {
       try {
         const chatDoc = await getDoc(doc(db, 'chats', chatId));
-
         if (chatDoc.exists()) {
           const data = chatDoc.data();
           setChatData(data);
 
           const otherParticipant = data.participants.find(email => email !== user.email);
           setRecipientEmail(otherParticipant || 'Unknown');
+
+          if(!recipientPublicKey){
+            const usersQuery = query(collection(db, 'users'), where('email', '==', otherParticipant));
+            const usersSnapshot = await getDocs(usersQuery);
+            console.log("USERS SNAPSHOT", usersSnapshot)
+            if (usersSnapshot.empty) {
+                console.error('Recipient not found');
+                return;
+              }
+          
+              // Get recipient's public key
+            const recipientData = usersSnapshot.docs[0].data();
+            console.log("RECIPIENT DATA", recipientData)
+            setRecipientPublicKey(recipientData.publicKey)
+          }
+
+          if(!senderPublicKey){
+            const usersQuery = query(collection(db, 'users'), where('email', '==', user.email));
+            const usersSnapshot = await getDocs(usersQuery);
+            console.log("USERS SNAPSHOT", usersSnapshot)
+            if (usersSnapshot.empty) {
+                console.error('Sender not found');
+                return;
+              }
+          
+              // Get recipient's public key
+            const senderData = usersSnapshot.docs[0].data();
+            console.log("SENDER DATA", senderData)
+            setSenderPublicKey(senderData.publicKey)
+            sPublicKey = senderData.publicKey
+          }
+
+          return
+          
         } else {
           console.error('Chat not found');
           router.push('/chats');
@@ -50,9 +84,10 @@ export default function Chat() {
       }
     };
 
-    fetchChatData();
+    fetchData();
 
-    const unsubscribe = listenToChatMessages(chatId, (updatedMessages) => {
+    const unsubscribe = listenToChatMessages (chatId, (updatedMessages) =>  {
+      if(!recipientPublicKey)return;
       // For this CryptoJS implementation, we need to use the user's email as the private key
       // This matches how you're encrypting in the sendMessage function
       
@@ -69,8 +104,9 @@ export default function Chat() {
             
             // Step 4: Verify the sender's signature
             let isValidSignature = true;
-            if(message.recipient === user.email)
+            if(message.recipient === user.email){
                 isValidSignature = verifySignature(decryptedText, message.signature, recipientPublicKey);
+            }
             if (!isValidSignature) {
                 console.error("Signature verification failed! Message may be tampered with.");
                 return { ...message, text: "[Invalid Signature]", decrypted: false };
@@ -88,40 +124,7 @@ export default function Chat() {
     });
 
     return () => unsubscribe();
-  }, [chatId, user, loading, router]);
-
-
-  const fetchRecipientPublicKey = async () => {
-    console.log("RECIPIENT EMAIL", recipientEmail)
-    const usersQuery = query(collection(db, 'users'), where('email', '==', recipientEmail));
-    const usersSnapshot = await getDocs(usersQuery);
-    console.log("USERS SNAPSHOT", usersSnapshot)
-    if (usersSnapshot.empty) {
-        console.error('Recipient not found');
-        return;
-      }
-  
-      // Get recipient's public key
-    const recipientData = usersSnapshot.docs[0].data();
-    setRecipientPublicKey(recipientData.publicKey)
-
-    const senderQuery = query(collection(db, 'users'), where('email', '==', user.email));
-    const senderSnapshot = await getDocs(senderQuery);
-    console.log("SENDER SNAPSHOT", senderSnapshot)
-    if (senderSnapshot.empty) {
-        console.error('Sender not found');
-        return;
-      }
-  
-      // Get recipient's public key
-      setSenderPublicKey(senderSnapshot.docs[0].data().publicKey)
-  }
-  useEffect(()=>{
-    if(recipientEmail)
-        fetchRecipientPublicKey();
-  },[recipientEmail])
-
-
+  }, [chatId, user, loading, router, recipientPublicKey]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -163,7 +166,7 @@ export default function Chat() {
 
       <main className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-4">
         <div className="flex-1 overflow-y-auto mb-4">
-          <MessageList messages={messages} currentUserEmail={user.email} />
+          <MessageList messages={messages} currentUserEmail={user?.email} />
           <div ref={messagesEndRef} />
         </div>
 

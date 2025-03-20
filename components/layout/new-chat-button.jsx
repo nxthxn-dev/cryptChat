@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { IoAdd, IoClose } from 'react-icons/io5';
 import { createChat } from '@/lib/firebase/firestore';
 import { useAuth } from '@/context/auth-context';
-
+import { query, where, getDocs, collection,doc, getDoc  } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 export default function NewChatButton() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [recipient, setRecipient] = useState('');
@@ -37,6 +38,14 @@ export default function NewChatButton() {
     
     if (recipient === user.email) {
       setError('You cannot chat with yourself');
+      return;
+    }
+
+    const usersQuery = query(collection(db, 'users'), where('email', '==', recipient));
+    const usersSnapshot = await getDocs(usersQuery);
+
+    if (usersSnapshot.empty) {
+      setError('User with email not found');
       return;
     }
     

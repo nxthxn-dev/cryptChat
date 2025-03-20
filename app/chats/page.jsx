@@ -64,7 +64,7 @@ export default function Chats() {
             </p>
           </div>
         ) : (
-          <ChatList chats={chats} currentUserEmail={user.email} />
+          <ChatList chats={chats} currentUserEmail={user?.email} />
         )}
       </main>
       
