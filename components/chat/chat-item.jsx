@@ -1,8 +1,8 @@
-import React from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '../../hooks/use-auth';
-import Avatar from '../ui/avatar';
-import { getRelativeTime } from '../../lib/utils/date';
+import React from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../../hooks/use-auth";
+import Avatar from "../ui/avatar";
+import { getRelativeTime } from "../../lib/utils/date";
 
 /**
  * Individual chat item component
@@ -13,46 +13,43 @@ import { getRelativeTime } from '../../lib/utils/date';
 const ChatItem = ({ chat, isActive }) => {
   const router = useRouter();
   const { user } = useAuth();
-  
-  // Get the other participant's data
+
   const otherParticipant = chat.participantsData?.[0] || {};
-  
-  // Get the last message timestamp
-  const lastMessageTime = chat.lastMessage?.timestamp?.toDate 
-    ? getRelativeTime(chat.lastMessage.timestamp.toDate()) 
-    : '';
-  
-  // Get the last message preview
-  const lastMessagePreview = chat.lastMessage?.content || 'No messages yet';
-  
-  // Determine if the last message was from the current user
+
+  const lastMessageTime = chat.lastMessage?.timestamp?.toDate
+    ? getRelativeTime(chat.lastMessage.timestamp.toDate())
+    : "";
+
+  const lastMessagePreview = chat.lastMessage?.content || "No messages yet";
+
   const isLastMessageFromUser = chat.lastMessage?.senderId === user?.uid;
-  
-  // Handle click to navigate to chat
+
   const handleClick = () => {
     router.push(`/chats/${chat.id}`);
   };
-  
+
   return (
-    <div 
+    <div
       className={`
         flex items-center p-3 rounded-md cursor-pointer transition-colors
-        ${isActive ? 'bg-foreground/10' : 'hover:bg-foreground/5'}
+        ${isActive ? "bg-foreground/10" : "hover:bg-foreground/5"}
       `}
       onClick={handleClick}
     >
-      <Avatar 
-        initials={otherParticipant.displayName?.charAt(0) || 'U'}
+      <Avatar
+        initials={otherParticipant.displayName?.charAt(0) || "U"}
         src={otherParticipant.photoURL}
         alt={otherParticipant.displayName}
-        status={otherParticipant.status || 'offline'}
+        status={otherParticipant.status || "offline"}
         size="md"
       />
-      
+
       <div className="ml-3 flex-1 overflow-hidden">
         <div className="flex justify-between items-center">
           <h4 className="font-medium truncate">
-            {otherParticipant.displayName || otherParticipant.email || 'Unknown User'}
+            {otherParticipant.displayName ||
+              otherParticipant.email ||
+              "Unknown User"}
           </h4>
           {lastMessageTime && (
             <span className="text-xs text-foreground/60">
@@ -60,9 +57,9 @@ const ChatItem = ({ chat, isActive }) => {
             </span>
           )}
         </div>
-        
+
         <p className="text-sm text-foreground/60 truncate">
-          {isLastMessageFromUser && 'You: '}
+          {isLastMessageFromUser && "You: "}
           {lastMessagePreview}
         </p>
       </div>
